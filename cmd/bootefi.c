@@ -251,6 +251,9 @@ static unsigned long do_bootefi_exec(void *efi, void *fdt)
 	efi_reset_system_init();
 	efi_get_time_init();
 
+	/* we don't support much: */
+	setenv("efi_61dfe48bca93d211aa0d00e098032b8c_OsIndicationsSupported", "(u64)0");
+
 	/* Call our payload! */
 	debug("%s:%d Jumping to 0x%lx\n", __func__, __LINE__, (long)entry);
 
