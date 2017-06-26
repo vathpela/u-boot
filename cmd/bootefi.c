@@ -175,6 +175,20 @@ static unsigned long efi_run_in_el2(asmlinkage ulong (*entry)(
 }
 #endif
 
+/* setup GRUB_ENV EFI variable to pass fdtfile to grub: */
+static void setup_grub_env(void)
+{
+	const char *fdtfile = getenv("fdtfile");
+	char buf[128];
+
+	if (!fdtfile)
+		return;
+
+	sprintf(buf, "(string)# GRUB Environment Block\nfdtfile=%s\n", fdtfile);
+
+	setenv("efi_ff6a3791a6cbbe42949d06fde81128e8_GRUB_ENV", buf);
+}
+
 /*
  * Load an EFI payload into a newly allocated piece of memory, register all
  * EFI objects it would want to access and jump to it.
@@ -253,6 +267,7 @@ static unsigned long do_bootefi_exec(void *efi, void *fdt)
 
 	/* we don't support much: */
 	setenv("efi_61dfe48bca93d211aa0d00e098032b8c_OsIndicationsSupported", "(u64)0");
+	setup_grub_env();
 
 	/* Call our payload! */
 	debug("%s:%d Jumping to 0x%lx\n", __func__, __LINE__, (long)entry);
