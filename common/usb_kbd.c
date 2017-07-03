@@ -517,7 +517,21 @@ static int probe_usb_keyboard(struct usb_device *dev)
 
 	stdinname = getenv("stdin");
 #if CONFIG_IS_ENABLED(CONSOLE_MUX)
+	char *devname = DEVNAME;
+	/* stdin might not be set yet.. either way, with console-mux the
+	 * sensible thing to do is add ourselves to the list of stdio
+	 * devices:
+	 */
+	if (stdinname) {
+		char *newstdin = malloc(strlen(stdinname) + strlen(","DEVNAME) + 1);
+		sprintf(newstdin, "%s,"DEVNAME, stdinname);
+		stdinname = newstdin;
+	} else {
+		stdinname = devname;
+	}
 	error = iomux_doenv(stdin, stdinname);
+	if (stdinname != devname)
+		free(stdinname);
 	if (error)
 		return error;
 #else
