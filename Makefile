@@ -780,6 +780,12 @@ ALL-$(CONFIG_SPL_FRAMEWORK) += u-boot.img
 endif
 ALL-$(CONFIG_TPL) += tpl/u-boot-tpl.bin
 ALL-$(CONFIG_OF_SEPARATE) += u-boot.dtb
+# Snapdragon devices, where lk/aboot loads u-boot is kind of a special
+# case, because lk loads the fdt which is embedded (along with u-boot)
+# in a boot.img.  But it also does some fdt fixups.  So generally we
+# want to treat it like CONFIG_OF_BOARD=y, except that we also want
+# to build the dtb's
+ALL-$(CONFIG_ARCH_SNAPDRAGON) += u-boot.dtb
 ifeq ($(CONFIG_SPL_FRAMEWORK),y)
 ALL-$(CONFIG_OF_SEPARATE) += u-boot-dtb.img
 endif
