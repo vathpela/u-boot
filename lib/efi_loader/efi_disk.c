@@ -254,10 +254,6 @@ static int efi_disk_create_eltorito(struct blk_desc *desc,
  * EFI payload, we scan through all of the potentially available ones and
  * store them in our object pool.
  *
- * TODO(sjg@chromium.org): Actually with CONFIG_BLK, U-Boot does have this.
- * Consider converting the code to look up devices as needed. The EFI device
- * could be a child of the UCLASS_BLK block device, perhaps.
- *
  * This gets called from do_bootefi_exec().
  */
 int efi_disk_register(void)
