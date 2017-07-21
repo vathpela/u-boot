@@ -161,11 +161,30 @@ extern void *efi_bounce_buffer;
 #define EFI_LOADER_BOUNCE_BUFFER_SIZE (64 * 1024 * 1024)
 #endif
 
+/*
+ * u-boot to EFI device mapping:
+ *
+ * TODO extend this for GOP and various other input/output
+ * devices which should also have an EFI devicepath?
+ */
+struct efi_device_path *efi_dp_from_dev(struct udevice *dev);
+struct efi_device_path *efi_dp_from_part(struct blk_desc *desc, int part);
+struct efi_device_path *efi_dp_from_file(struct blk_desc *desc, int part,
+		const char *path);
+
 /* Convert strings from normal C strings to uEFI strings */
 static inline void ascii2unicode(u16 *unicode, const char *ascii)
 {
 	while (*ascii)
 		*(unicode++) = *(ascii++);
+}
+
+static inline void ascii2unicoden(u16 *unicode, const char *ascii, unsigned n)
+{
+	while (n && *ascii) {
+		*(unicode++) = *(ascii++);
+		n--;
+	}
 }
 
 static inline int guidcmp(const efi_guid_t *g1, const efi_guid_t *g2)
