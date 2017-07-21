@@ -41,6 +41,11 @@ static struct efi_device_path_file_path bootefi_image_path[] = {
 	}
 };
 
+/* if we have CONFIG_DM we construct a proper device-path from the
+ * boot device, otherwise fallback to using bootefi_device_path.
+ */
+static struct efi_device_path *real_bootefi_device_path;
+
 static struct efi_device_path_file_path bootefi_device_path[] = {
 	{
 		.dp.type = DEVICE_PATH_TYPE_MEDIA_DEVICE,
@@ -56,7 +61,6 @@ static struct efi_device_path_file_path bootefi_device_path[] = {
 
 /* The EFI loaded_image interface for the image executed via "bootefi" */
 static struct efi_loaded_image loaded_image_info = {
-	.device_handle = bootefi_device_path,
 	.file_path = bootefi_image_path,
 };
 
@@ -93,7 +97,6 @@ static struct efi_object loaded_image_info_obj = {
 
 /* The EFI object struct for the device the "bootefi" image was loaded from */
 static struct efi_object bootefi_device_obj = {
-	.handle = bootefi_device_path,
 	.protocols = {
 		{
 			/* When asking for the device path interface, return
@@ -239,8 +242,6 @@ static unsigned long do_bootefi_exec(void *efi, void *fdt)
 
 	if (!memcmp(bootefi_device_path[0].str, "N\0e\0t", 6))
 		loaded_image_info.device_handle = nethandle;
-	else
-		loaded_image_info.device_handle = bootefi_device_path;
 #endif
 #ifdef CONFIG_GENERATE_SMBIOS_TABLE
 	efi_smbios_register();
@@ -335,6 +336,18 @@ U_BOOT_CMD(
 	bootefi_help_text
 );
 
+#ifdef CONFIG_DM
+static int parse_partnum(const char *devnr)
+{
+	const char *str = strchr(devnr, ':');
+	if (str) {
+		str++;
+		return simple_strtoul(str, NULL, 16);
+	}
+	return 0;
+}
+#endif
+
 void efi_set_bootdev(const char *dev, const char *devnr, const char *path)
 {
 	__maybe_unused struct blk_desc *desc;
@@ -372,9 +385,14 @@ void efi_set_bootdev(const char *dev, const char *devnr, const char *path)
 	if (colon)
 		*colon = '\0';
 
+#ifdef CONFIG_DM
+	real_bootefi_device_path = efi_dp_from_part(desc, parse_partnum(devnr));
+#else
 	/* Patch bootefi_device_path to the target device */
+	real_bootefi_device_path = bootefi_device_path;
 	memset(bootefi_device_path[0].str, 0, sizeof(bootefi_device_path[0].str));
 	ascii2unicode(bootefi_device_path[0].str, devname);
+#endif
 
 	/* Patch bootefi_image_path to the target file path */
 	memset(bootefi_image_path[0].str, 0, sizeof(bootefi_image_path[0].str));
@@ -389,4 +407,7 @@ void efi_set_bootdev(const char *dev, const char *devnr, const char *path)
 	while ((s = strchr(s, '/')))
 		*s++ = '\\';
 	ascii2unicode(bootefi_image_path[0].str, devname);
+
+	loaded_image_info.device_handle = real_bootefi_device_path;
+	bootefi_device_obj.handle = real_bootefi_device_path;
 }
