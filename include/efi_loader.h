@@ -146,6 +146,10 @@ efi_status_t efi_set_timer(struct efi_event *event, int type,
 /* Call this to signal an event */
 void efi_signal_event(struct efi_event *event);
 
+/* open file system: */
+struct efi_simple_file_system_protocol * efi_simple_file_system(
+		struct blk_desc *desc, int part);
+
 /* Generic EFI memory allocator, call this to get memory */
 void *efi_alloc(uint64_t len, int memory_type);
 /* More specific EFI memory allocator, called by EFI payloads */

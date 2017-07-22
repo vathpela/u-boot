@@ -95,6 +95,24 @@ static struct efi_object loaded_image_info_obj = {
 	},
 };
 
+static struct blk_desc *desc;
+static int part;
+
+static efi_status_t EFIAPI bootefi_open_fs(void *handle, efi_guid_t *protocol,
+			void **protocol_interface)
+{
+	struct efi_simple_file_system_protocol *volume = NULL;
+
+	if (desc && part)
+		volume = efi_simple_file_system(desc, part);
+	if (!volume)
+		return EFI_EXIT(EFI_UNSUPPORTED);
+
+	*protocol_interface = volume;
+
+	return EFI_SUCCESS;
+}
+
 /* The EFI object struct for the device the "bootefi" image was loaded from */
 static struct efi_object bootefi_device_obj = {
 	.protocols = {
@@ -103,7 +121,11 @@ static struct efi_object bootefi_device_obj = {
 			 * bootefi_device_path */
 			.guid = &efi_guid_device_path,
 			.protocol_interface = bootefi_device_path
+		}, {
+			.guid = &EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_GUID,
+			.open = &bootefi_open_fs,
 		}
+		// TODO should also support EFI_PXE_GUID ..
 	},
 };
 
@@ -354,7 +376,6 @@ U_BOOT_CMD(
 	bootefi_help_text
 );
 
-#ifdef CONFIG_DM
 static int parse_partnum(const char *devnr)
 {
 	const char *str = strchr(devnr, ':');
@@ -364,11 +385,9 @@ static int parse_partnum(const char *devnr)
 	}
 	return 0;
 }
-#endif
 
 void efi_set_bootdev(const char *dev, const char *devnr, const char *path)
 {
-	__maybe_unused struct blk_desc *desc;
 	char devname[32] = { 0 }; /* dp->str is u16[32] long */
 	char *colon, *s;
 
@@ -403,8 +422,10 @@ void efi_set_bootdev(const char *dev, const char *devnr, const char *path)
 	if (colon)
 		*colon = '\0';
 
+	part = parse_partnum(devnr);
+
 #ifdef CONFIG_DM
-	real_bootefi_device_path = efi_dp_from_part(desc, parse_partnum(devnr));
+	real_bootefi_device_path = efi_dp_from_part(desc, part);
 #else
 	/* Patch bootefi_device_path to the target device */
 	real_bootefi_device_path = bootefi_device_path;

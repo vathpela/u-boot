@@ -29,10 +29,14 @@ struct efi_disk_obj {
 	struct efi_block_io_media media;
 	/* EFI device path to this block device */
 	struct efi_device_path *dp;
+	/* partition # */
+	unsigned part;
+	/* handle to filesys proto (for partition objects) */
+	struct efi_simple_file_system_protocol *volume;
 	/* Offset into disk for simple partitions */
 	lbaint_t offset;
 	/* Internal block device */
-	const struct blk_desc *desc;
+	struct blk_desc *desc;
 };
 
 static efi_status_t EFIAPI efi_disk_reset(struct efi_block_io *this,
@@ -197,6 +201,21 @@ static struct efi_device_path *blk2dp(struct blk_desc *desc,
 #endif
 }
 
+static efi_status_t EFIAPI efi_disk_open_fs(void *handle, efi_guid_t *protocol,
+			void **protocol_interface)
+{
+	struct efi_disk_obj *diskobj = handle;
+
+	if (!diskobj->volume) {
+		diskobj->volume =
+			efi_simple_file_system(diskobj->desc, diskobj->part);
+	}
+
+	*protocol_interface = diskobj->volume;
+
+	return EFI_SUCCESS;
+}
+
 static void efi_disk_add_dev(const char *name,
 			     const char *if_typename,
 			     struct blk_desc *desc,
@@ -214,10 +233,17 @@ static void efi_disk_add_dev(const char *name,
 
 	/* Fill in object data */
 	diskobj->dp = blk2dp(desc, name, part);
+	diskobj->part = part;
 	diskobj->parent.protocols[0].guid = &efi_block_io_guid;
 	diskobj->parent.protocols[0].protocol_interface = &diskobj->ops;
 	diskobj->parent.protocols[1].guid = &efi_guid_device_path;
 	diskobj->parent.protocols[1].protocol_interface = diskobj->dp;
+	if (part > 1) {
+		diskobj->parent.protocols[2].guid =
+			&EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_GUID;
+		diskobj->parent.protocols[2].open =
+			efi_disk_open_fs;
+	}
 	diskobj->parent.handle = diskobj;
 	diskobj->ops = block_io_disk_template;
 	diskobj->ifname = if_typename;
