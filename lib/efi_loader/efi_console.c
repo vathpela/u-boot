@@ -426,7 +426,6 @@ struct efi_simple_input_interface efi_con_in = {
 	.read_key_stroke = efi_cin_read_key_stroke,
 	.wait_for_key = NULL,
 };
-
 static struct efi_event *console_timer_event;
 
 static void efi_key_notify(struct efi_event *event, void *context)
@@ -441,10 +440,24 @@ static void efi_console_timer_notify(struct efi_event *event, void *context)
 	EFI_EXIT(EFI_SUCCESS);
 }
 
+
+static struct efi_object efi_console_control_obj =
+	EFI_PROTOCOL_OBJECT(efi_guid_console_control, &efi_console_control);
+static struct efi_object efi_console_output_obj =
+	EFI_PROTOCOL_OBJECT(EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL_GUID, &efi_con_out);
+static struct efi_object efi_console_input_obj =
+	EFI_PROTOCOL_OBJECT(EFI_SIMPLE_TEXT_INPUT_PROTOCOL_GUID, &efi_con_in);
+
 /* This gets called from do_bootefi_exec(). */
 int efi_console_register(void)
 {
 	efi_status_t r;
+
+	/* Hook up to the device list */
+	list_add_tail(&efi_console_control_obj.link, &efi_obj_list);
+	list_add_tail(&efi_console_output_obj.link, &efi_obj_list);
+	list_add_tail(&efi_console_input_obj.link, &efi_obj_list);
+
 	r = efi_create_event(EVT_NOTIFY_WAIT, TPL_CALLBACK,
 			     efi_key_notify, NULL, &efi_con_in.wait_for_key);
 	if (r != EFI_SUCCESS) {
