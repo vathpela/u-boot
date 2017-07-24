@@ -462,7 +462,7 @@ struct simple_file_system {
 };
 #define to_fs(x) container_of(x, struct simple_file_system, base)
 
-efi_status_t EFIAPI
+static efi_status_t EFIAPI
 efi_open_volume(struct efi_simple_file_system_protocol *this,
 		struct efi_file_handle **root)
 {
