@@ -70,19 +70,23 @@ static struct efi_object loaded_image_info_obj = {
 	.protocols = {
 		{
 			/*
+			 * When asking for the device path interface, return
+			 * bootefi_device_path
+			 *
+			 * WARNING: keep this protocol first in list since
+			 * it needs to be patched up at boot time with the
+			 * real device-path
+			 */
+			.guid = &efi_guid_device_path,
+			.protocol_interface = bootefi_device_path,
+		},
+		{
+			/*
 			 * When asking for the loaded_image interface, just
 			 * return handle which points to loaded_image_info
 			 */
 			.guid = &efi_guid_loaded_image,
 			.protocol_interface = &loaded_image_info,
-		},
-		{
-			/*
-			 * When asking for the device path interface, return
-			 * bootefi_device_path
-			 */
-			.guid = &efi_guid_device_path,
-			.protocol_interface = bootefi_device_path,
 		},
 		{
 			.guid = &efi_guid_console_control,
@@ -118,7 +122,12 @@ static struct efi_object bootefi_device_obj = {
 	.protocols = {
 		{
 			/* When asking for the device path interface, return
-			 * bootefi_device_path */
+			 * bootefi_device_path
+			 *
+			 * WARNING: keep this protocol first in list since
+			 * it needs to be patched up at boot time with the
+			 * real device-path.
+			 */
 			.guid = &efi_guid_device_path,
 			.protocol_interface = bootefi_device_path
 		}, {
@@ -449,4 +458,12 @@ void efi_set_bootdev(const char *dev, const char *devnr, const char *path)
 
 	loaded_image_info.device_handle = real_bootefi_device_path;
 	bootefi_device_obj.handle = real_bootefi_device_path;
+
+	/* this is a bit fragile, maybe we should convert these two
+	 * back to handler->open():
+	 */
+	loaded_image_info_obj.protocols[0].protocol_interface =
+			real_bootefi_device_path;
+	bootefi_device_obj.protocols[0].protocol_interface =
+			real_bootefi_device_path;
 }
