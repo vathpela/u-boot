@@ -1063,6 +1063,13 @@ static efi_status_t EFIAPI efi_open_protocol(
 			if (!guidcmp(hprotocol, protocol)) {
 				if (attributes !=
 				    EFI_OPEN_PROTOCOL_TEST_PROTOCOL) {
+					if (!handler->protocol_interface) {
+						r = handler->open(efiobj->handle,
+								protocol,
+								&handler->protocol_interface);
+						if (r != EFI_SUCCESS)
+							goto out;
+					}
 					*protocol_interface =
 						handler->protocol_interface;
 				}

@@ -41,10 +41,17 @@ extern unsigned int __efi_runtime_rel_start, __efi_runtime_rel_stop;
 /*
  * When the UEFI payload wants to open a protocol on an object to get its
  * interface (usually a struct with callback functions), this struct maps the
- * protocol GUID to the respective protocol interface */
+ * protocol GUID to the respective protocol interface.
+ *
+ * The optional ->open() fxn can be used for cases where the protocol
+ * interface is constructed on-demand, and is called if protocol_interface
+ * is NULL.
+ */
 struct efi_handler {
 	const efi_guid_t *guid;
 	void *protocol_interface;
+	efi_status_t (EFIAPI *open)(void *handle, efi_guid_t *protocol,
+			void **protocol_interface);
 };
 
 /*
