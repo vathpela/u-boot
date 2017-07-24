@@ -16,6 +16,8 @@
 
 static const efi_guid_t efi_block_io_guid = BLOCK_IO_GUID;
 
+LIST_HEAD(disk_obj_list);
+
 struct efi_disk_obj {
 	/* Generic EFI object parent class data */
 	struct efi_object parent;
@@ -37,6 +39,8 @@ struct efi_disk_obj {
 	lbaint_t offset;
 	/* Internal block device */
 	struct blk_desc *desc;
+	/* link in list of diskobj's */
+	struct list_head link;
 };
 
 static efi_status_t EFIAPI efi_disk_reset(struct efi_block_io *this,
@@ -216,6 +220,66 @@ static efi_status_t EFIAPI efi_disk_open_fs(void *handle, efi_guid_t *protocol,
 	return EFI_SUCCESS;
 }
 
+/* Compare two device-paths, stopping when the shorter of the two hits
+ * an End* node.  This is useful to, for example, compare a device-path
+ * representing a device with one representing a file on the device, or
+ * a device with a parent device.
+ *
+ * XXX maybe helper, or move to efi_devpath?
+ */
+static int match_device_path(struct efi_device_path *a,
+			     struct efi_device_path *b)
+{
+	while (1) {
+		int ret;
+
+		ret = memcmp(&a->length, &b->length, sizeof(a->length));
+		if (ret)
+			return ret;
+
+		ret = memcmp(a, b, a->length);
+		if (ret)
+			return ret;
+
+		if (!a || !b)
+			return 0;
+
+		a = efi_dp_next(a);
+		b = efi_dp_next(b);
+	}
+}
+
+/* Find filesystem from a device-path.  The passed in path 'p' probably
+ * contains one or more /File(name) nodes, so the comparision stops at
+ * the first /File() node, and returns the pointer to that via 'rp'.
+ * This is mostly intended to be a helper to map a device-path to an
+ * efi_file_handle object.
+ */
+struct efi_simple_file_system_protocol *
+efi_disk_from_path(struct efi_device_path *fp)
+{
+	struct efi_disk_obj *diskobj;
+
+	/* TODO see UEFI spec (section 3.1.2, about short-form
+	 * device-paths.. tl;dr: we can have a device-path that
+	 * starts with a USB WWID or USB Class node, and a few
+	 * other cases which don't encode the full device path
+	 * with bus hierarchy.
+	 */
+
+	list_for_each_entry(diskobj, &disk_obj_list, link) {
+		struct efi_simple_file_system_protocol *volume;
+
+		if (match_device_path(diskobj->dp, fp))
+			continue;
+
+		efi_disk_open_fs(diskobj, NULL, (void **)&volume);
+		return volume;
+	}
+
+	return NULL;
+}
+
 static void efi_disk_add_dev(const char *name,
 			     const char *if_typename,
 			     struct blk_desc *desc,
@@ -261,6 +325,9 @@ static void efi_disk_add_dev(const char *name,
 
 	/* Hook up to the device list */
 	list_add_tail(&diskobj->parent.link, &efi_obj_list);
+
+	/* Hook up to the disk list: */
+	list_add_tail(&diskobj->link, &disk_obj_list);
 }
 
 static int efi_disk_create_eltorito(struct blk_desc *desc,

@@ -119,6 +119,8 @@ int efi_net_register(void **handle);
 /* Called by bootefi to make SMBIOS tables available */
 void efi_smbios_register(void);
 
+struct efi_simple_file_system_protocol *
+efi_disk_from_path(struct efi_device_path *fp);
 
 /* Called by networking code to memorize the dhcp ack package */
 void efi_net_set_dhcp_ack(void *pkt, int len);
@@ -152,6 +154,10 @@ void efi_signal_event(struct efi_event *event);
 /* open file system: */
 struct efi_simple_file_system_protocol * efi_simple_file_system(
 		struct blk_desc *desc, int part);
+
+/* open file from device-path: */
+struct efi_file_handle *efi_file_from_path(struct efi_device_path *fp);
+
 
 /* Generic EFI memory allocator, call this to get memory */
 void *efi_alloc(uint64_t len, int memory_type);
@@ -194,6 +200,17 @@ struct efi_device_path *efi_dp_from_dev(struct udevice *dev);
 struct efi_device_path *efi_dp_from_part(struct blk_desc *desc, int part);
 struct efi_device_path *efi_dp_from_file(struct blk_desc *desc, int part,
 		const char *path);
+
+/*
+ * Iterate to next block in device-path, terminating (returning NULL)
+ * at /End* node.
+ */
+static inline struct efi_device_path *efi_dp_next(struct efi_device_path *dp)
+{
+	if (dp->type == DEVICE_PATH_TYPE_END)
+		return NULL;
+	return ((void *)dp) + dp->length;
+}
 
 /* Convert strings from normal C strings to uEFI strings */
 static inline void ascii2unicode(u16 *unicode, const char *ascii)

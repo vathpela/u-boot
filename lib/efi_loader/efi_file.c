@@ -414,6 +414,47 @@ static const struct efi_file_handle efi_file_handle_protocol = {
 	.flush = efi_file_flush,
 };
 
+struct efi_file_handle *efi_file_from_path(struct efi_device_path *fp)
+{
+	struct efi_simple_file_system_protocol *v;
+	struct efi_file_handle *f;
+	efi_status_t ret;
+
+	v = efi_disk_from_path(fp);
+	if (!v)
+		return NULL;
+
+	ret = v->open_volume(v, &f);
+	if (ret != EFI_SUCCESS)
+		return NULL;
+
+	/* skip over device-path nodes before the file path: */
+	while (fp->type != DEVICE_PATH_TYPE_MEDIA_DEVICE ||
+	       fp->sub_type != DEVICE_PATH_SUB_TYPE_FILE_PATH)
+		fp = efi_dp_next(fp);
+
+	while (fp) {
+		struct efi_device_path_file_path *fdp =
+			container_of(fp, struct efi_device_path_file_path, dp);
+		struct efi_file_handle *f2;
+
+		if (fp->type != DEVICE_PATH_TYPE_MEDIA_DEVICE ||
+		    fp->sub_type != DEVICE_PATH_SUB_TYPE_FILE_PATH) {
+			printf("bad file path!\n");
+			f->close(f);
+			return NULL;
+		}
+
+		ret = f->open(f, &f2, (s16 *)fdp->str, EFI_FILE_MODE_READ, 0);
+		if (ret != EFI_SUCCESS)
+			return NULL;
+
+		fp = efi_dp_next(fp);
+	}
+
+	return f;
+}
+
 struct simple_file_system {
 	struct efi_simple_file_system_protocol base;
 	struct blk_desc *desc;

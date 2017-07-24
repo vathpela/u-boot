@@ -660,6 +660,40 @@ static efi_status_t EFIAPI efi_install_configuration_table_ext(efi_guid_t *guid,
 	return EFI_EXIT(efi_install_configuration_table(guid, table));
 }
 
+static efi_status_t load_image_from_path(struct efi_device_path *file_path,
+					 void **buffer)
+{
+	struct efi_file_info info;
+	struct efi_file_handle *f;
+	static efi_status_t ret;
+	uint64_t bs;
+
+	f = efi_file_from_path(file_path);
+	if (!f)
+		return EFI_DEVICE_ERROR;
+
+	bs = sizeof(info);
+	ret = f->getinfo(f, &EFI_FILE_INFO_GUID, &bs, &info);
+	if (ret != EFI_SUCCESS)
+		goto error;
+
+	ret = efi_allocate_pool(EFI_RUNTIME_SERVICES_CODE, info.file_size, buffer);
+	if (ret)
+		goto error;
+
+	ret = f->read(f, &info.file_size, *buffer);
+
+error:
+	f->close(f);
+
+	if (ret != EFI_SUCCESS) {
+		efi_free_pool(*buffer);
+		*buffer = NULL;
+	}
+
+	return ret;
+}
+
 static efi_status_t EFIAPI efi_load_image(bool boot_policy,
 					  efi_handle_t parent_image,
 					  struct efi_device_path *file_path,
@@ -679,6 +713,15 @@ static efi_status_t EFIAPI efi_load_image(bool boot_policy,
 
 	EFI_ENTRY("%d, %p, %p, %p, %ld, %p", boot_policy, parent_image,
 		  file_path, source_buffer, source_size, image_handle);
+
+	if (!source_buffer) {
+		efi_status_t ret;
+
+		ret = load_image_from_path(file_path, &source_buffer);
+		if (ret != EFI_SUCCESS)
+			return EFI_EXIT(ret);
+	}
+
 	info = malloc(sizeof(*info));
 	loaded_image_info_obj.protocols[0].protocol_interface = info;
 	obj = malloc(sizeof(loaded_image_info_obj));
