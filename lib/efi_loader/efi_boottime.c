@@ -47,6 +47,7 @@ static struct efi_configuration_table __efi_runtime_data efi_conf_table[2];
  * EFI callback entry/exit.
  */
 static volatile void *efi_gd, *app_gd;
+static int entry_level = 0;
 #endif
 
 /* Called from do_bootefi_exec() */
@@ -61,6 +62,8 @@ void efi_save_gd(void)
 void efi_restore_gd(void)
 {
 #ifdef CONFIG_ARM
+	if (entry_level++)
+		return;
 	/* Only restore if we're already in EFI context */
 	if (!efi_gd)
 		return;
@@ -75,6 +78,8 @@ void efi_restore_gd(void)
 efi_status_t efi_exit_func(efi_status_t ret)
 {
 #ifdef CONFIG_ARM
+	if (--entry_level)
+		return ret;
 	gd = app_gd;
 #endif
 
