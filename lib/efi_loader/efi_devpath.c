@@ -15,6 +15,7 @@
 #include <inttypes.h>
 #include <part.h>
 #include <malloc.h>
+#include "efi_util.h"
 
 /* template END node: */
 const static struct efi_device_path END = {
@@ -235,8 +236,7 @@ struct efi_device_path *efi_dp_from_file(struct blk_desc *desc, int part,
 			fp->dp.type = DEVICE_PATH_TYPE_MEDIA_DEVICE;
 			fp->dp.sub_type = DEVICE_PATH_SUB_TYPE_FILE_PATH;
 			fp->dp.length = sizeof(*fp);
-			ascii2unicoden(fp->str, lp, p - lp);
-
+			ascii2unicoden(fp->str, lp, p - lp - 1);
 			fp = &fp[1];
 		}
 		lp = p;

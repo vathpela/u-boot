@@ -241,11 +241,11 @@ static int match_device_path(struct efi_device_path *a,
 		if (ret)
 			return ret;
 
-		if (!a || !b)
-			return 0;
-
 		a = efi_dp_next(a);
 		b = efi_dp_next(b);
+
+		if (!a || !b)
+			return 0;
 	}
 }
 
@@ -344,11 +344,7 @@ static int efi_disk_create_eltorito(struct blk_desc *desc,
 	if (desc->part_type != PART_TYPE_ISO)
 		return 0;
 
-#ifdef CONFIG_DM
-	/* add block device: */
-	efi_disk_add_dev(devname, if_typename, desc, diskid, 0, 0);
-#endif
-	/* ... and devices for each partition: */
+	/* and devices for each partition: */
 	while (!part_get_info(desc, part, &info)) {
 		snprintf(devname, sizeof(devname), "%s:%d", pdevname,
 			 part);
@@ -357,6 +353,10 @@ static int efi_disk_create_eltorito(struct blk_desc *desc,
 		part++;
 		disks++;
 	}
+#ifdef CONFIG_DM
+	/* ... and add block device: */
+	efi_disk_add_dev(devname, if_typename, desc, diskid, 0, 0);
+#endif
 #endif
 
 	return disks;
@@ -385,17 +385,17 @@ int efi_disk_register(void)
 
 		printf("Scanning disk %s...\n", dev->name);
 
-#ifdef CONFIG_DM
-		/* add block device: */
-		efi_disk_add_dev(dev->name, if_typename, desc,
-				desc->devnum, 0, 0);
-#endif
-		/* ... and devices for each partition: */
+		/* add devices for each partition: */
 		while (!part_get_info(desc, part, &info)) {
 			efi_disk_add_dev(dev->name, if_typename, desc,
 					desc->devnum, 0, part);
 			part++;
 		}
+#ifdef CONFIG_DM
+		/* ... and add block device: */
+		efi_disk_add_dev(dev->name, if_typename, desc,
+				desc->devnum, 0, 0);
+#endif
 		disks++;
 
 		/*

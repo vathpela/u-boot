@@ -207,9 +207,12 @@ struct efi_device_path *efi_dp_from_file(struct blk_desc *desc, int part,
  */
 static inline struct efi_device_path *efi_dp_next(struct efi_device_path *dp)
 {
+	if (dp == NULL)
+		return NULL;
+	dp = ((void *)dp) + dp->length;
 	if (dp->type == DEVICE_PATH_TYPE_END)
 		return NULL;
-	return ((void *)dp) + dp->length;
+	return dp;
 }
 
 /* Convert strings from normal C strings to uEFI strings */

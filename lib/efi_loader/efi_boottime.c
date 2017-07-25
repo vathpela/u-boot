@@ -668,7 +668,7 @@ static efi_status_t EFIAPI efi_install_configuration_table_ext(efi_guid_t *guid,
 static efi_status_t load_image_from_path(struct efi_device_path *file_path,
 					 void **buffer)
 {
-	struct efi_file_info info;
+	struct efi_file_info *info = NULL;
 	struct efi_file_handle *f;
 	static efi_status_t ret;
 	uint64_t bs;
@@ -678,17 +678,22 @@ static efi_status_t load_image_from_path(struct efi_device_path *file_path,
 		return EFI_DEVICE_ERROR;
 
 	bs = sizeof(info);
-	ret = f->getinfo(f, &EFI_FILE_INFO_GUID, &bs, &info);
+	ret = f->getinfo(f, &EFI_FILE_INFO_GUID, &bs, info);
+	if (ret == EFI_BUFFER_TOO_SMALL) {
+		info = malloc(bs);
+		ret = f->getinfo(f, &EFI_FILE_INFO_GUID, &bs, info);
+	}
 	if (ret != EFI_SUCCESS)
 		goto error;
 
-	ret = efi_allocate_pool(EFI_RUNTIME_SERVICES_CODE, info.file_size, buffer);
+	ret = efi_allocate_pool(EFI_RUNTIME_SERVICES_CODE, info->file_size, buffer);
 	if (ret)
 		goto error;
 
-	ret = f->read(f, &info.file_size, *buffer);
+	ret = f->read(f, &info->file_size, *buffer);
 
 error:
+	free(info);
 	f->close(f);
 
 	if (ret != EFI_SUCCESS) {

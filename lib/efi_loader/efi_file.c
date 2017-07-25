@@ -429,9 +429,10 @@ struct efi_file_handle *efi_file_from_path(struct efi_device_path *fp)
 		return NULL;
 
 	/* skip over device-path nodes before the file path: */
-	while (fp->type != DEVICE_PATH_TYPE_MEDIA_DEVICE ||
-	       fp->sub_type != DEVICE_PATH_SUB_TYPE_FILE_PATH)
+	while (fp && (fp->type != DEVICE_PATH_TYPE_MEDIA_DEVICE ||
+	              fp->sub_type != DEVICE_PATH_SUB_TYPE_FILE_PATH)) {
 		fp = efi_dp_next(fp);
+	}
 
 	while (fp) {
 		struct efi_device_path_file_path *fdp =
@@ -450,6 +451,9 @@ struct efi_file_handle *efi_file_from_path(struct efi_device_path *fp)
 			return NULL;
 
 		fp = efi_dp_next(fp);
+
+		f->close(f);
+		f = f2;
 	}
 
 	return f;
