@@ -1,0 +1,6 @@
+QEMU ARM64 'VIRT' BOARD
+M:	Peter Jones <pjones@redhat.com>
+S:	Maintained
+F:	board/emulation/qemu-arm64/
+F:	include/configs/qemu-arm64.h
+F:	configs/qemu_arm64_defconfig

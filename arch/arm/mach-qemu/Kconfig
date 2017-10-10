@@ -1,12 +1,26 @@
-if ARCH_QEMU
+if ARCH_QEMU || ARCH_QEMU64
 
 config SYS_VENDOR
 	default "emulation"
+
+endif
+
+if ARCH_QEMU
 
 config SYS_BOARD
 	default "qemu-arm"
 
 config SYS_CONFIG_NAME
 	default "qemu-arm"
+
+endif
+
+if ARCH_QEMU64
+
+config SYS_BOARD
+	default "qemu-arm64"
+
+config SYS_CONFIG_NAME
+	default "qemu-arm64"
 
 endif

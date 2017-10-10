@@ -639,6 +639,13 @@ config ARCH_QEMU
 	select DM_SERIAL
 	select OF_CONTROL
 
+config ARCH_QEMU64
+	bool "QEMU Virtual Platform (64-bit)"
+	select ARM64
+	select DM
+	select DM_SERIAL
+	select OF_CONTROL
+
 config ARCH_RMOBILE
 	bool "Renesas ARM SoCs"
 	select DM
