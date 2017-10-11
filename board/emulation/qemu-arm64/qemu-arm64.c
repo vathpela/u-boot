@@ -71,6 +71,20 @@ int dram_init_banksize(void)
 	int bank;
 
 	for (bank = 0; bank < CONFIG_NR_DRAM_BANKS; bank++) {
+		debug("%s: &mem_map[%d] = 0x%p\n", __func__, bank,
+		      &qemu_arm64_mem_map[bank]);
+		debug("%s: setting mem_map[%d].virt = 0x%p\n", __func__, bank,
+		      (void *)gd->bd->bi_dram[bank].start);
+		debug("%s: setting mem_map[%d].phys = 0x%p\n", __func__, bank,
+		      (void *)gd->bd->bi_dram[bank].start);
+		debug("%s: setting mem_map[%d].size = 0x%llx\n", __func__, bank,
+		      gd->bd->bi_dram[bank].size);
+		debug("%s: &mem_map[%d].attrs = 0x%p\n", __func__, bank,
+		      &qemu_arm64_mem_map[bank].attrs);
+		debug("%s: mem_map[%d].attrs = 0x%llx\n", __func__, bank,
+		      qemu_arm64_mem_map[bank].attrs);
+		debug("%s: PTE_BLOCK_MEMTYPE(MT_NORMAL) | PTE_BLOCK_INNER_SHARE = 0x%x\n", __func__,
+		      PTE_BLOCK_MEMTYPE(MT_NORMAL) | PTE_BLOCK_INNER_SHARE);
 		qemu_arm64_mem_map[bank].virt = gd->bd->bi_dram[bank].start;
 		qemu_arm64_mem_map[bank].phys = gd->bd->bi_dram[bank].start;
 		qemu_arm64_mem_map[bank].size = gd->bd->bi_dram[bank].size;

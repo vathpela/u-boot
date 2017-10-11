@@ -56,4 +56,6 @@
 	"ramdisk_addr_r=0x44000000\0" \
 	BOOTENV
 
+#define DEBUG
+
 #endif /* __CONFIG_H */

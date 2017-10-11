@@ -375,6 +375,7 @@ void setup_pgtables(void)
 	/* Now add all MMU table entries one after another to the table */
 	for (i = 0; mem_map[i].size || mem_map[i].attrs; i++)
 		add_map(&mem_map[i]);
+	debug("%s(): done\n", __func__);
 }
 
 static void setup_all_pgtables(void)
@@ -386,9 +387,11 @@ static void setup_all_pgtables(void)
 	gd->arch.tlb_fillptr = tlb_addr;
 
 	/* Create normal system page tables */
+	debug("%s(): Creating normal page tables\n", __func__);
 	setup_pgtables();
 
 	/* Create emergency page tables */
+	debug("%s(): Creating emergency page tables\n", __func__);
 	gd->arch.tlb_size -= (uintptr_t)gd->arch.tlb_fillptr -
 			     (uintptr_t)gd->arch.tlb_addr;
 	gd->arch.tlb_addr = gd->arch.tlb_fillptr;
@@ -396,23 +399,34 @@ static void setup_all_pgtables(void)
 	gd->arch.tlb_emerg = gd->arch.tlb_addr;
 	gd->arch.tlb_addr = tlb_addr;
 	gd->arch.tlb_size = tlb_size;
+	debug("%s(): done\n", __func__);
 }
 
 /* to activate the MMU we need to set up virtual memory */
 __weak void mmu_setup(void)
 {
 	int el;
+	int sctlr;
 
 	/* Set up page tables only once */
 	if (!gd->arch.tlb_fillptr)
 		setup_all_pgtables();
 
+	debug("%s(): getting current_el()\n", __func__);
 	el = current_el();
+	debug("%s(): el: 0x%08x\n", __func__, el);
+	debug("%s(): set_ttbr_tcr_mair()\n", __func__);
 	set_ttbr_tcr_mair(el, gd->arch.tlb_addr, get_tcr(el, NULL, NULL),
 			  MEMORY_ATTRIBUTES);
 
 	/* enable the mmu */
-	set_sctlr(get_sctlr() | CR_M);
+	debug("%s(): enabling the mmu\n", __func__);
+	debug("%s(): get_sctlr(): 0x%08x CR_M: 0x%08x\n", __func__, get_sctlr(), CR_M);
+	sctlr = get_sctlr();
+	set_sctlr(sctlr | CR_M);
+	set_sctlr(sctlr);
+	debug("%s(): enabled and disabled the mmu\n", __func__);
+	set_sctlr(sctlr | CR_M);
 }
 
 /*
