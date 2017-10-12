@@ -3,4 +3,5 @@
 #
 
 obj-y	+= qemu-arm64.o
-extra-y	+= head.o
+extra-y += head.o
+extra-y += lowlevel_init.o

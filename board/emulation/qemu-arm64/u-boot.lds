@@ -20,7 +20,7 @@ SECTIONS
 	{
 		*(.__image_copy_start)
 		board/emulation/qemu-arm64/head.o (.text*)
-		CPUDIR/start.o (.text*)
+		board/emulation/qemu-arm64/lowlevel_init.o (.text*)
 		*(.text*)
 	}
 

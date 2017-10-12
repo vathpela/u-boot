@@ -45,6 +45,7 @@
 #include <config_distro_bootcmd.h>
 
 #define CONFIG_PREBOOT "pci enum"
+#if 0
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"fdt_high=0xffffffff\0" \
 	"initrd_high=0xffffffff\0" \
@@ -54,5 +55,11 @@
 	"kernel_addr_r=0x40400000\0" \
 	"ramdisk_addr_r=0x44000000\0" \
 	BOOTENV
+#else
+#define CONFIG_EXTRA_ENV_SETTINGS \
+	"fdt_addr=0x00000000\0" \
+	"fdt_high=0x03ffffff\0" \
+	BOOTENV
+#endif
 
 #endif /* __CONFIG_H */

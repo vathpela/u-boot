@@ -402,6 +402,12 @@ static void setup_all_pgtables(void)
 	debug("%s(): done\n", __func__);
 }
 
+static void print_debug_msg(void)
+{
+	debug("done enabling the mmu\n");
+}
+
+extern phys_addr_t fw_dtb_pointer;
 /* to activate the MMU we need to set up virtual memory */
 __weak void mmu_setup(void)
 {
@@ -424,9 +430,12 @@ __weak void mmu_setup(void)
 	debug("%s(): get_sctlr(): 0x%08x CR_M: 0x%08x\n", __func__, get_sctlr(), CR_M);
 	sctlr = get_sctlr();
 	set_sctlr(sctlr | CR_M);
+#if 0
 	set_sctlr(sctlr);
 	debug("%s(): enabled and disabled the mmu\n", __func__);
 	set_sctlr(sctlr | CR_M);
+#endif
+	print_debug_msg();
 }
 
 /*
