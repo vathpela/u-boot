@@ -167,6 +167,8 @@ int add_fdt_map(const char *path, int i, struct mm_region *new_region)
 		return 0;
 	if (!strncmp(path, "/memory", 7))
 		attrs = normal_attrs;
+	if (!strncmp(path, "/pcie@", 6))
+		return 0;
 	mem_map = qemu_arm64_mem_map;
 
 	offset = fdt_path_offset(fdt, path);
@@ -192,8 +194,8 @@ int add_fdt_map(const char *path, int i, struct mm_region *new_region)
 						continue;
 					if (new_region->size != 0 || new_region->attrs != 0) {
 						new_region->size = roundup(new_region->size, PAGE_SIZE);
-						debug("%s():   adding mem_map[%d] = {.phys=.virt=0x%016llx,.size=0x%016llx}\n",
-						      __func__, i, new_region->phys, new_region->size);
+						debug("%s():   adding mem_map[%d](%p) = {.phys=.virt=0x%016llx,.size=0x%016llx}\n",
+						      __func__, i, &mem_map[j], new_region->phys, new_region->size);
 						memcpy(&mem_map[j++], new_region, sizeof(new_region));
 						ret = 1;
 					}
@@ -250,9 +252,14 @@ void do_fdt_bits(void)
 	if (new_region.phys && new_region.size) {
 		mem_map = qemu_arm64_mem_map;
 		new_region.size = roundup(new_region.size, PAGE_SIZE);
+#if 0
 		debug("%s():   adding mem_map[%d](%p) = {.phys=.virt=0x%016llx,.size=0x%016llx}\n",
 		      __func__, i, &mem_map[i], new_region.phys, new_region.size);
 		debug("%s(): got here %d\n", __func__, __LINE__);
+		debug("%s(): &mem_map[%d]: %p\n", __func__, i, &mem_map[i]);
+		debug("%s(): &new_region: %p\n", __func__, &new_region);
+		debug("%s(): sizeof(new_region): %lu\n", __func__, sizeof(new_region));
+#endif
 		memcpy(&mem_map[i], &new_region, sizeof(new_region));
 		debug("%s(): got here %d\n", __func__, __LINE__);
 		i++;
