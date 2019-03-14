@@ -404,6 +404,7 @@ struct efi_device_path_acpi_path {
 #  define DEVICE_PATH_SUB_TYPE_MSG_SCSI		0x02
 #  define DEVICE_PATH_SUB_TYPE_MSG_USB		0x05
 #  define DEVICE_PATH_SUB_TYPE_MSG_MAC_ADDR	0x0b
+#  define DEVICE_PATH_SUB_TYPE_MSG_UART		0x0e
 #  define DEVICE_PATH_SUB_TYPE_MSG_USB_CLASS	0x0f
 #  define DEVICE_PATH_SUB_TYPE_MSG_SD		0x1a
 #  define DEVICE_PATH_SUB_TYPE_MSG_MMC		0x1d
@@ -419,6 +420,15 @@ struct efi_device_path_scsi {
 	struct efi_device_path dp;
 	u16 target_id;
 	u16 logical_unit_number;
+} __packed;
+
+struct efi_device_path_uart {
+	struct efi_device_path dp;
+	u32 reserved;
+	u64 baud_rate;
+	u8 data_bits;
+	u8 parity;
+	u8 stop_bits;
 } __packed;
 
 struct efi_device_path_usb {
@@ -661,6 +671,84 @@ struct efi_simple_text_input_protocol {
 			struct efi_simple_text_input_protocol *this,
 			struct efi_input_key *key);
 	struct efi_event *wait_for_key;
+};
+
+#define EFI_SERIAL_IO_GUID \
+	EFI_GUID(0xbb25cf6f, 0xf1d4, 0x11d2, \
+		 0x9a, 0x0c, 0x00, 0x90, 0x27, 0x3f, 0xc1, 0xfd)
+#define EFI_SERIAL_TERMINAL_DEVICE_TYPE_GUID \
+	EFI_GUID(0x6ad9a60f, 0x5815, 0x4c7c, \
+		 0x8a, 0x10, 0x50, 0x53, 0xd2, 0xbf, 0x7a, 0x1b)
+
+enum efi_serial_parity {
+	default_parity,
+	no_parity,
+	even_parity,
+	odd_parity,
+	mark_parity,
+	space_parity
+};
+
+enum efi_serial_stop_bits {
+	default_stop_bits,
+	one_stop_bit,
+	one_five_stop_bits,
+	two_stop_bits
+};
+
+#define EFI_SERIAL_IO_PROTOCOL_REVISION		0x00010000
+#define EFI_SERIAL_IO_PROTOCOL_REVISION1p1	0x00010001
+
+#define EFI_SERIAL_DATA_TERMINAL_READY		0x0001
+#define EFI_SERIAL_REQUEST_TO_SEND		0x0002
+#define EFI_SERIAL_CLEAR_TO_SEND		0x0010
+#define EFI_SERIAL_DATA_SET_READY		0x0020
+#define EFI_SERIAL_RING_INDICATE		0x0040
+#define EFI_SERIAL_CARRIER_DETECT		0x0080
+#define EFI_SERIAL_INPUT_BUFFER_EMPTY		0x0100
+#define EFI_SERIAL_OUTPUT_BUFFER_EMPTY		0x0200
+#define EFI_SERIAL_HARDWARE_LOOPBACK_ENABLE	0x1000
+#define EFI_SERIAL_SOFTWARE_LOOPBACK_ENABLE	0x2000
+#define EFI_SERIAL_HARDWARE_FLOW_CONTROL_ENABLE	0x4000
+
+struct efi_serial_io_mode {
+	u32 control_mask;
+	u32 timeout;
+	u64 baud_rate;
+	u32 receive_fifo_depth;
+	u32 data_bits;
+	u32 parity;
+	u32 stop_bits;
+};
+
+struct efi_serial_io_protocol {
+	u32 revision;
+	void(EFIAPI *reset)(
+			struct efi_serial_io_protocol *this);
+	efi_status_t(EFIAPI *set_attributes)(
+			struct efi_serial_io_protocol *this,
+			u64 baud_rate,
+			u32 fifo_depth,
+			u32 timeout,
+			enum efi_serial_parity parity,
+			u8 data_bits,
+			enum efi_serial_stop_bits stop_bits);
+	efi_status_t(EFIAPI *set_control_bits)(
+			struct efi_serial_io_protocol *this,
+			u32 control);
+	efi_status_t(EFIAPI *get_control_bits)(
+			struct efi_serial_io_protocol *this,
+			u32 *control);
+	efi_status_t(EFIAPI *write)(
+			struct efi_serial_io_protocol *this,
+			efi_uintn_t *buffer_size,
+			void *buffer);
+	efi_status_t(EFIAPI *read)(
+			struct efi_serial_io_protocol *this,
+			efi_uintn_t *buffer_size,
+			void *buffer);
+	struct efi_serial_io_mode *mode;
+	const efi_guid_t *device_type_guid;
 };
 
 #define EFI_DEVICE_PATH_TO_TEXT_PROTOCOL_GUID \

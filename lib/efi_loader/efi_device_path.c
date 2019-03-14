@@ -12,8 +12,10 @@
 #include <dm.h>
 #include <usb.h>
 #include <mmc.h>
+#include <efi_api.h>
 #include <efi_loader.h>
 #include <part.h>
+#include <serial.h>
 
 /* template END node: */
 static const struct efi_device_path END = {
@@ -457,6 +459,9 @@ static unsigned dp_size(struct udevice *dev)
 	case UCLASS_USB_HUB:
 		return dp_size(dev->parent) +
 			sizeof(struct efi_device_path_usb_class);
+	case UCLASS_SERIAL:
+		return dp_size(dev->parent) +
+			sizeof(struct efi_device_path_uart);
 	default:
 		/* just skip over unknown classes: */
 		return dp_size(dev->parent);
@@ -590,6 +595,61 @@ static void *dp_fill(void *buf, struct udevice *dev)
 		udp->device_protocol = desc->bDeviceProtocol;
 
 		return &udp[1];
+	}
+	case UCLASS_SERIAL: {
+		struct efi_device_path_uart *udp =
+			dp_fill(buf, dev->parent);
+		struct dm_serial_ops *ops;
+		struct serial_device_info info;
+		uint cfg;
+		int rc;
+
+		ops = serial_get_ops(dev);
+		rc = ops->getconfig(dev, &cfg);
+		if (rc >= 0) {
+			enum efi_serial_stop_bits efi_stop = default_stop_bits;
+			enum efi_serial_parity efi_parity = default_parity;
+			enum serial_par parity = SERIAL_GET_PARITY(cfg);
+			enum serial_stop stop = SERIAL_GET_STOP(cfg);
+
+			switch (parity) {
+			case SERIAL_PAR_NONE:
+				efi_parity = no_parity;
+				break;
+			case SERIAL_PAR_ODD:
+				efi_parity = odd_parity;
+				break;
+			case SERIAL_PAR_EVEN:
+				efi_parity = even_parity;
+				break;
+			}
+			udp->parity = efi_parity;
+
+			switch (stop) {
+			case SERIAL_HALF_STOP:
+				break;
+			case SERIAL_ONE_STOP:
+				efi_stop = one_stop_bit;
+				break;
+			case SERIAL_ONE_HALF_STOP:
+				efi_stop = one_five_stop_bits;
+				break;
+			case SERIAL_TWO_STOP:
+				efi_stop = two_stop_bits;
+				break;
+			}
+			udp->stop_bits = efi_stop;
+			udp->data_bits = SERIAL_GET_BITS(cfg);
+		}
+
+		rc = ops->getinfo(dev, &info);
+		if (rc <= 0) {
+			udp->baud_rate = info.baudrate;
+		} else {
+			udp->baud_rate = 115200;
+		}
+
+		return &udp[0];
 	}
 	default:
 		debug("%s(%u) %s: unhandled device class: %s (%u)\n",

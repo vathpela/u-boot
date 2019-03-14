@@ -46,6 +46,10 @@ efi_status_t efi_init_obj_list(void)
 	ret = efi_console_register();
 	if (ret != EFI_SUCCESS)
 		goto out;
+
+	ret = efi_serial_register();
+	if (ret != EFI_SUCCESS)
+		goto out;
 #ifdef CONFIG_PARTITIONS
 	ret = efi_disk_register();
 	if (ret != EFI_SUCCESS)

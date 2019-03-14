@@ -260,6 +260,8 @@ efi_status_t efi_root_node_register(void);
 efi_status_t efi_initialize_system_table(void);
 /* Called by bootefi to make console interface available */
 efi_status_t efi_console_register(void);
+/* Called by bootefi to make serial interface available */
+efi_status_t efi_serial_register(void);
 /* Called by bootefi to make all disk storage accessible as EFI objects */
 efi_status_t efi_disk_register(void);
 /* Create handles and protocols for the partitions of a block device */
